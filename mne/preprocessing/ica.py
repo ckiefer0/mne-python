@@ -497,7 +497,10 @@ class ICA(ContainsMixin):
         return self
 
     def _pre_whiten(self, data, info, picks):
-        """Aux function."""
+        """Aux function.
+
+           pre_whitener[this_picks] = np.std(data[this_picks], axis=1)[:, None]
+        """
         has_pre_whitener = hasattr(self, '_pre_whitener')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
@@ -522,7 +525,7 @@ class ICA(ContainsMixin):
                         raise RuntimeError('Should not be reached.'
                                            'Unsupported channel {0}'
                                            .format(ch_type))
-                    pre_whitener[this_picks] = np.std(data[this_picks])
+                    pre_whitener[this_picks] = np.std(data[this_picks], axis=1)[:, None]
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
             pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
