@@ -1485,6 +1485,8 @@ def _merge_dict_values(dicts, key, verbose=None):
 
     Fork for {'dict', 'list', 'array', 'other'}
     and consider cases where one or all are of the same type.
+
+    Does special things for "projs", "bads", and "meas_date".
     """
     values = [d[key] for d in dicts]
     msg = ("Don't know how to merge '%s'. Make sure values are "
@@ -1503,8 +1505,13 @@ def _merge_dict_values(dicts, key, verbose=None):
     # list
     if _check_isinstance(values, list, all):
         lists = (d[key] for d in dicts)
-        return (_uniquify_projs(_flatten(lists)) if key == 'projs'
-                else _flatten(lists))
+        if key == 'projs':
+            return _uniquify_projs(_flatten(lists))
+        elif key == 'bads':
+            return sorted(set(_flatten(lists)))
+        else:
+            return _flatten(lists)
+
     elif _check_isinstance(values, list, any):
         idx = _where_isinstance(values, list)
         if len(idx) == 1:

@@ -526,6 +526,7 @@ class ICA(ContainsMixin):
                                            'Unsupported channel {0}'
                                            .format(ch_type))
                     pre_whitener[this_picks] = np.std(data[this_picks], axis=1)[:, None]
+                    # pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
             pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
