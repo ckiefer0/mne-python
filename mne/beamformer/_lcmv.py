@@ -26,7 +26,7 @@ from ._compute_beamformer import (
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='info', weight_norm='unit-noise-gain',
+              pick_ori=None, rank='info', inversion='single', weight_norm='unit-noise-gain',
               reduce_rank=False, depth=None, verbose=None):
     """Compute LCMV spatial filter.
 
@@ -62,6 +62,17 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             'vector'
                 Keeps the currents for each direction separate
     %(rank_info)s
+    inversion : 'single' | 'matrix'
+        This determines how the beamformer deals with source spaces in "free"
+        orientation. Such source spaces define three orthogonal dipoles at each
+        source point. When ``inversion='single'``, each dipole is considered
+        as an individual source and the corresponding spatial filter is
+        computed for each dipole separately. When ``inversion='matrix'``, all
+        three dipoles at a source vertex are considered as a group and the
+        spatial filters are computed jointly using a matrix inversion. While
+        ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
+        precise. See section 5 of :footcite:`vanVlietEtAl2018`.  Defaults to
+        'single'.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -122,6 +133,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
+    _check_option('inversion', inversion, ['single', 'matrix'])
+
     # check number of sensor types present in the data and ensure a noise cov
     info = _simplify_info(info)
     noise_cov, _ = _check_one_ch_type('lcmv', info, forward,
@@ -164,7 +177,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # leadfield rank and optional rank reduction
     if reduce_rank:
-        if not pick_ori == 'max-power':
+        if not (pick_ori == 'max-power' and inversion == 'matrix'):
             raise NotImplementedError('The computation of spatial filters '
                                       'with rank reduction using reduce_rank '
                                       'parameter is only implemented with '
@@ -175,7 +188,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     n_orient = 3 if is_free_ori else 1
     W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
                             pick_ori, reduce_rank, rank_int,
-                            inversion='matrix', nn=nn, orient_std=orient_std)
+                            inversion=inversion, nn=nn,
+                            orient_std=orient_std)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
@@ -190,9 +204,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     filters = Beamformer(
         kind='LCMV', weights=W, data_cov=data_cov, noise_cov=noise_cov,
         whitener=whitener, weight_norm=weight_norm, pick_ori=pick_ori,
-        ch_names=ch_names, proj=proj, is_ssp=is_ssp, vertices=vertno,
-        is_free_ori=is_free_ori, nsource=forward['nsource'], src_type=src_type,
-        source_nn=forward['source_nn'].copy(), subject=subject_from,
+        inversion=inversion, ch_names=ch_names, proj=proj, is_ssp=is_ssp,
+        vertices=vertno, is_free_ori=is_free_ori, nsource=forward['nsource'],
+        src_type=src_type, source_nn=forward['source_nn'].copy(), subject=subject_from,
         rank=rank_int)
 
     return filters
