@@ -2508,12 +2508,20 @@ def _pca_flip(flip, data):
     scale = linalg.norm(s) / np.sqrt(len(data))
     return sign * scale * V[0]
 
+def _corr(flip, data):
+    # get absolute value of correlation matrix
+    corr = np.fabs(np.corrcoef(data))
+    # get time course with highest median correlation
+    median = np.median(corr, axis=1)
+    return data[np.argmax(median)]
+
 
 _label_funcs = {
     'mean': lambda flip, data: np.mean(data, axis=0),
     'mean_flip': lambda flip, data: np.mean(flip * data, axis=0),
     'max': lambda flip, data: np.max(np.abs(data), axis=0),
     'pca_flip': _pca_flip,
+    'corr': _corr,
 }
 
 
