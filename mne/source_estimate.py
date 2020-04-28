@@ -2515,6 +2515,11 @@ def _corr(flip, data):
     median = np.median(corr, axis=1)
     return data[np.argmax(median)]
 
+def _max_amplitude(flip, data):
+    # get index of time course with highest amplitude
+    data_abs = np.fabs(data)
+    max_values = data_abs.max(axis=-1)
+    return data[np.argmax(max_values)]
 
 _label_funcs = {
     'mean': lambda flip, data: np.mean(data, axis=0),
@@ -2522,6 +2527,7 @@ _label_funcs = {
     'max': lambda flip, data: np.max(np.abs(data), axis=0),
     'pca_flip': _pca_flip,
     'corr': _corr,
+    'max_amplitude': _max_amplitude,
 }
 
 
